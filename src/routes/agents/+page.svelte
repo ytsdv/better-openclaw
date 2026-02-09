@@ -9,6 +9,7 @@
 
 	const agents = $derived<AgentConfig[]>(connection.config?.agents?.list ?? []);
 	const defaultWorkspace = $derived(connection.config?.agents?.defaults?.workspace ?? '~/.openclaw/workspace');
+	const isGatewayRestarting = $derived(connection.status === 'reconnecting');
 
 	// Add agent modal
 	let showAddModal = $state(false);
@@ -40,6 +41,7 @@
 	let deleteLoading = $state(false);
 
 	function openAddModal() {
+		if (isGatewayRestarting) return;
 		newId = '';
 		newName = '';
 		newEmoji = '';
@@ -100,6 +102,10 @@
 	}
 
 	async function addAgent() {
+		if (isGatewayRestarting) {
+			addError = 'Gateway is restarting. Please wait before adding agents.';
+			return;
+		}
 		if (!newId.trim()) {
 			addError = 'Agent ID is required';
 			return;
@@ -151,6 +157,7 @@
 	}
 
 	async function deleteAgent(id: string) {
+		if (isGatewayRestarting) return;
 		deleteLoading = true;
 		try {
 			const updatedList = agents.filter((a) => a.id !== id);
@@ -177,7 +184,9 @@
 		</div>
 		<button
 			onclick={openAddModal}
-			class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover active:scale-[0.98]"
+			disabled={isGatewayRestarting}
+			title={isGatewayRestarting ? 'Gateway is restarting' : undefined}
+			class="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
 		>
 			<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -217,8 +226,9 @@
 					<!-- Delete button -->
 					<button
 						onclick={() => (deleteTarget = agent.id)}
-						class="absolute right-3 top-3 rounded-md p-1.5 text-text-dim opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100"
-						title="Delete agent"
+						disabled={isGatewayRestarting}
+						title={isGatewayRestarting ? 'Gateway is restarting' : 'Delete agent'}
+						class="absolute right-3 top-3 rounded-md p-1.5 text-text-dim opacity-0 transition-all hover:bg-danger-muted hover:text-danger group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -287,6 +297,11 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
 		<div class="w-full max-w-md rounded-2xl border border-border bg-bg-raised p-6 shadow-2xl">
 			<h2 class="mb-5 text-lg font-semibold text-text">Add New Agent</h2>
+			{#if isGatewayRestarting}
+				<div class="mb-4 rounded-lg border border-warning/20 bg-warning-muted px-3 py-2 text-sm text-warning">
+					Gateway is restarting. Adding agents is temporarily disabled.
+				</div>
+			{/if}
 
 			<div class="space-y-4">
 				<div>
@@ -296,6 +311,7 @@
 						type="text"
 						bind:value={newId}
 						placeholder="e.g. work, personal, family"
+						disabled={isGatewayRestarting}
 						class="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text placeholder-text-dim outline-none focus:border-accent/50 font-mono"
 					/>
 				</div>
@@ -307,6 +323,7 @@
 						type="text"
 						bind:value={newName}
 						placeholder="e.g. Work Bot, Samantha"
+						disabled={isGatewayRestarting}
 						class="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text placeholder-text-dim outline-none focus:border-accent/50"
 					/>
 				</div>
@@ -318,6 +335,7 @@
 						type="text"
 						bind:value={newEmoji}
 						placeholder="e.g. a lobster"
+						disabled={isGatewayRestarting}
 						class="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text placeholder-text-dim outline-none focus:border-accent/50"
 					/>
 				</div>
@@ -329,6 +347,7 @@
 						type="text"
 						bind:value={newWorkspace}
 						placeholder="~/.openclaw/workspace-{newId || 'agent'}"
+						disabled={isGatewayRestarting}
 						class="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text placeholder-text-dim outline-none focus:border-accent/50 font-mono"
 					/>
 				</div>
@@ -340,12 +359,17 @@
 						class:border-accent={dropActive}
 						class:bg-bg-hover={dropActive}
 						class:border-border={!dropActive}
+						class:opacity-60={isGatewayRestarting}
 						ondragover={(event) => {
+							if (isGatewayRestarting) return;
 							event.preventDefault();
 							dropActive = true;
 						}}
 						ondragleave={() => (dropActive = false)}
-						ondrop={onDrop}
+						ondrop={(event) => {
+							if (isGatewayRestarting) return;
+							onDrop(event);
+						}}
 					>
 						<p class="text-text-muted">Drop up to 7 markdown files or click to browse</p>
 						<p class="text-[10px] text-text-dim font-mono">SOUL.md, AGENTS.md, USER.md, IDENTITY.md, TOOLS.md, HEARTBEAT.md, BOOTSTRAP.md</p>
@@ -354,6 +378,7 @@
 								type="file"
 								accept=".md"
 								multiple
+								disabled={isGatewayRestarting}
 								class="hidden"
 								onchange={onFileInputChange}
 							/>
@@ -399,7 +424,7 @@
 				</button>
 				<button
 					onclick={addAgent}
-					disabled={addLoading}
+					disabled={addLoading || isGatewayRestarting}
 					class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-accent-hover disabled:opacity-50"
 				>
 					{addLoading ? 'Adding...' : 'Add Agent'}
@@ -425,11 +450,11 @@
 				>
 					Cancel
 				</button>
-				<button
-					onclick={() => deleteTarget && deleteAgent(deleteTarget)}
-					disabled={deleteLoading}
-					class="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-500 disabled:opacity-50"
-				>
+			<button
+				onclick={() => deleteTarget && deleteAgent(deleteTarget)}
+				disabled={deleteLoading || isGatewayRestarting}
+				class="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-500 disabled:opacity-50"
+			>
 					{deleteLoading ? 'Deleting...' : 'Delete'}
 				</button>
 			</div>
