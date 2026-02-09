@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-bg: #0a0a0f;
+	--color-bg-raised: #12121a;
+	--color-bg-surface: #1a1a26;
+	--color-bg-hover: #222233;
+	--color-border: #2a2a3d;
+	--color-border-subtle: #1e1e2e;
+	--color-text: #e4e4ef;
+	--color-text-muted: #8888a4;
+	--color-text-dim: #55556b;
+	--color-accent: #f05842;
+	--color-accent-hover: #ff6f5a;
+	--color-accent-muted: rgba(240, 88, 66, 0.15);
+	--color-success: #34d399;
+	--color-success-muted: rgba(52, 211, 153, 0.15);
+	--color-warning: #fbbf24;
+	--color-warning-muted: rgba(251, 191, 36, 0.15);
+	--color-danger: #ef4444;
+	--color-danger-muted: rgba(239, 68, 68, 0.15);
+
+	--font-sans: 'DM Sans', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@font-face {
+	font-family: 'DM Sans';
+	font-style: normal;
+	font-weight: 100 1000;
+	font-display: swap;
+	src: url('https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwA-opLSg.woff2')
+		format('woff2');
+}
+
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('https://fonts.gstatic.com/s/jetbrainsmono/v20/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2')
+		format('woff2');
+}
+
+html {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+}
+
+body {
+	min-height: 100dvh;
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: var(--color-border);
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-text-dim);
+}
