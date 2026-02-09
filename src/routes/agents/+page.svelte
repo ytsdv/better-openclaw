@@ -18,6 +18,22 @@
 	let newWorkspace = $state('');
 	let addError = $state<string | null>(null);
 	let addLoading = $state(false);
+	let uploadError = $state<string | null>(null);
+	let dropActive = $state(false);
+	let uploadedFiles = $state<Map<string, File>>(new Map());
+
+	const allowedAgentFiles = [
+		'SOUL.md',
+		'AGENTS.md',
+		'USER.md',
+		'IDENTITY.md',
+		'TOOLS.md',
+		'HEARTBEAT.md',
+		'BOOTSTRAP.md'
+	];
+	const allowedAgentFileMap = new Map(
+		allowedAgentFiles.map((name) => [normalizeFileName(name), name])
+	);
 
 	// Delete confirmation
 	let deleteTarget = $state<string | null>(null);
@@ -29,7 +45,58 @@
 		newEmoji = '';
 		newWorkspace = '';
 		addError = null;
+		uploadError = null;
+		dropActive = false;
+		uploadedFiles = new Map();
 		showAddModal = true;
+	}
+
+	function normalizeFileName(name: string): string {
+		return name.trim().toUpperCase();
+	}
+
+	function validateAndQueueFiles(files: FileList | File[]) {
+		const nextFiles = new Map(uploadedFiles);
+		uploadError = null;
+
+		for (const file of Array.from(files)) {
+			const normalized = normalizeFileName(file.name);
+			const canonical = allowedAgentFileMap.get(normalized);
+			if (!canonical) {
+				uploadError = `Unsupported file: ${file.name}. Use only ${allowedAgentFiles.join(', ')}`;
+				continue;
+			}
+			nextFiles.set(canonical, file);
+		}
+
+		if (nextFiles.size > allowedAgentFiles.length) {
+			uploadError = `Too many files. Max ${allowedAgentFiles.length} allowed.`;
+			return;
+		}
+
+		uploadedFiles = nextFiles;
+	}
+
+	function onFileInputChange(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		if (input.files && input.files.length > 0) {
+			validateAndQueueFiles(input.files);
+			input.value = '';
+		}
+	}
+
+	function onDrop(event: DragEvent) {
+		event.preventDefault();
+		dropActive = false;
+		if (event.dataTransfer?.files?.length) {
+			validateAndQueueFiles(event.dataTransfer.files);
+		}
+	}
+
+	function removeQueuedFile(name: string) {
+		const nextFiles = new Map(uploadedFiles);
+		nextFiles.delete(name);
+		uploadedFiles = nextFiles;
 	}
 
 	async function addAgent() {
@@ -44,10 +111,12 @@
 
 		addLoading = true;
 		addError = null;
+		uploadError = null;
 
+		const agentId = newId.trim();
 		const newAgent: AgentConfig = {
-			id: newId.trim(),
-			workspace: newWorkspace.trim() || `~/.openclaw/workspace-${newId.trim()}`
+			id: agentId,
+			workspace: newWorkspace.trim() || `~/.openclaw/workspace-${agentId}`
 		};
 		if (newName.trim()) {
 			newAgent.identity = { name: newName.trim() };
@@ -60,9 +129,22 @@
 			const updatedList = [...agents, newAgent];
 			const patch = JSON.stringify({ agents: { list: updatedList } });
 			await connection.patchConfig(patch);
+
+			if (uploadedFiles.size > 0) {
+				const tools = connection.getToolsClient();
+				for (const [name, file] of uploadedFiles) {
+					const content = await file.text();
+					await tools.setFile(agentId, name, content);
+				}
+			}
+
 			showAddModal = false;
 		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Failed to add agent';
+			if (uploadedFiles.size > 0) {
+				uploadError = err instanceof Error ? err.message : 'Failed to upload agent files';
+			} else {
+				addError = err instanceof Error ? err.message : 'Failed to add agent';
+			}
 		} finally {
 			addLoading = false;
 		}
@@ -250,11 +332,61 @@
 						class="w-full rounded-lg border border-border bg-bg-surface px-3 py-2 text-sm text-text placeholder-text-dim outline-none focus:border-accent/50 font-mono"
 					/>
 				</div>
+
+				<div>
+					<label class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-text-dim">Agent Files (Optional)</label>
+					<div
+						class="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-4 text-center text-xs transition-colors"
+						class:border-accent={dropActive}
+						class:bg-bg-hover={dropActive}
+						class:border-border={!dropActive}
+						ondragover={(event) => {
+							event.preventDefault();
+							dropActive = true;
+						}}
+						ondragleave={() => (dropActive = false)}
+						ondrop={onDrop}
+					>
+						<p class="text-text-muted">Drop up to 7 markdown files or click to browse</p>
+						<p class="text-[10px] text-text-dim font-mono">SOUL.md, AGENTS.md, USER.md, IDENTITY.md, TOOLS.md, HEARTBEAT.md, BOOTSTRAP.md</p>
+						<label class="mt-1 inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-bg-surface px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-bg-hover hover:text-text">
+							<input
+								type="file"
+								accept=".md"
+								multiple
+								class="hidden"
+								onchange={onFileInputChange}
+							/>
+							Browse Files
+						</label>
+					</div>
+					{#if uploadedFiles.size > 0}
+						<div class="mt-2 flex flex-wrap gap-2">
+							{#each Array.from(uploadedFiles.keys()) as fileName}
+								<div class="flex items-center gap-2 rounded-md bg-bg-surface px-2.5 py-1 text-xs text-text">
+									<span class="font-mono">{fileName}</span>
+									<button
+										onclick={() => removeQueuedFile(fileName)}
+										class="text-text-dim transition-colors hover:text-danger"
+										title="Remove file"
+									>
+										×
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			{#if addError}
 				<div class="mt-4 rounded-lg border border-danger/20 bg-danger-muted px-3 py-2 text-sm text-danger">
 					{addError}
+				</div>
+			{/if}
+			{#if uploadError}
+				<div class="mt-4 rounded-lg border border-danger/20 bg-danger-muted px-3 py-2 text-sm text-danger">
+					{uploadError}
 				</div>
 			{/if}
 
