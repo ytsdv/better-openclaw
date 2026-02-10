@@ -267,8 +267,7 @@ export class GatewayWSClient {
 	async patchConfig(raw: string, baseHash: string): Promise<void> {
 		const resp = await this.request('config.patch', {
 			raw,
-			baseHash,
-			restartDelayMs: 2000
+			baseHash
 		});
 		if (!resp.ok) throw new Error(resp.error?.message ?? 'Failed to patch config');
 	}
