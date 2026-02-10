@@ -128,18 +128,40 @@ function createConnectionStore() {
 	}
 
 	return {
-		get gatewayUrl() { return gatewayUrl; },
-		get token() { return token; },
-		get status() { return status; },
-		get error() { return error; },
-		get config() { return config; },
-		get configHash() { return configHash; },
-		get configRaw() { return configRaw; },
-		get gatewayStatus() { return gatewayStatus; },
-		get wsClient() { return wsClient; },
-		get isConnected() { return status === 'connected'; },
+		get gatewayUrl() {
+			return gatewayUrl;
+		},
+		get token() {
+			return token;
+		},
+		get status() {
+			return status;
+		},
+		get error() {
+			return error;
+		},
+		get config() {
+			return config;
+		},
+		get configHash() {
+			return configHash;
+		},
+		get configRaw() {
+			return configRaw;
+		},
+		get gatewayStatus() {
+			return gatewayStatus;
+		},
+		get wsClient() {
+			return wsClient;
+		},
+		get isConnected() {
+			return status === 'connected';
+		},
 		/** True when connected OR auto-reconnecting after a brief disconnect */
-		get isActive() { return status === 'connected' || status === 'reconnecting'; },
+		get isActive() {
+			return status === 'connected' || status === 'reconnecting';
+		},
 		connect,
 		disconnect,
 		refreshConfig,

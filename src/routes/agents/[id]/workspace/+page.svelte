@@ -1,12 +1,14 @@
 <script lang="ts">
 	import { connection } from '$lib/stores/connection.svelte.js';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { SvelteSet } from 'svelte/reactivity';
 	import type { AgentConfig } from '$lib/gateway/types.js';
 	import type { AgentFileEntry } from '$lib/gateway/types.js';
 
 	$effect(() => {
-		if (!connection.isActive) goto('/connect');
+		if (!connection.isActive) goto(resolve('/connect'));
 	});
 
 	const agentId = $derived(page.params.id as string);
@@ -31,7 +33,7 @@
 	let saving = $state(false);
 	let fileError = $state<string | null>(null);
 	let saveSuccess = $state(false);
-	let existingFiles = $state<Set<string>>(new Set());
+	let existingFiles = new SvelteSet<string>();
 	let allFiles = $state<AgentFileEntry[]>([]);
 	let initialized = $state(false);
 
@@ -54,7 +56,10 @@
 		try {
 			const tools = connection.getToolsClient();
 			allFiles = await tools.listAllFiles(agentId);
-			existingFiles = new Set(allFiles.filter((f) => !f.missing).map((f) => f.name));
+			existingFiles.clear();
+			for (const f of allFiles) {
+				if (!f.missing) existingFiles.add(f.name);
+			}
 		} catch {
 			// Ignore errors, just show all tabs
 		}
@@ -99,7 +104,6 @@
 			originalContent = fileContent;
 			saveSuccess = true;
 			existingFiles.add(activeTab);
-			existingFiles = existingFiles; // trigger reactivity
 			setTimeout(() => (saveSuccess = false), 3000);
 		} catch (err) {
 			fileError = err instanceof Error ? err.message : 'Failed to save file';
@@ -113,32 +117,34 @@
 
 <div class="flex h-dvh flex-col overflow-hidden">
 	<!-- Header -->
-	<div class="shrink-0 border-b border-border bg-bg-raised px-8 py-4">
-		<div class="mb-3 flex items-center gap-2 text-sm text-text-dim">
-			<a href="/agents" class="transition-colors hover:text-text">Agents</a>
+	<div class="border-border bg-bg-raised shrink-0 border-b px-8 py-4">
+		<div class="text-text-dim mb-3 flex items-center gap-2 text-sm">
+			<a href={resolve('/agents')} class="hover:text-text transition-colors">Agents</a>
 			<span>/</span>
-			<a href="/agents/{agentId}" class="transition-colors hover:text-text">{agent?.identity?.name ?? agentId}</a>
+			<a href={resolve(`/agents/${agentId}`)} class="hover:text-text transition-colors"
+				>{agent?.identity?.name ?? agentId}</a
+			>
 			<span>/</span>
 			<span class="text-text">Workspace Files</span>
 		</div>
 
 		<!-- Navigation tabs -->
-		<div class="mb-3 flex gap-1 rounded-lg border border-border bg-bg p-1">
+		<div class="border-border bg-bg mb-3 flex gap-1 rounded-lg border p-1">
 			<a
-				href="/agents/{agentId}"
-				class="rounded-md px-4 py-2 text-sm text-text-muted transition-colors hover:text-text"
+				href={resolve(`/agents/${agentId}`)}
+				class="text-text-muted hover:text-text rounded-md px-4 py-2 text-sm transition-colors"
 			>
 				Config
 			</a>
 			<a
-				href="/agents/{agentId}/workspace"
-				class="rounded-md bg-bg-hover px-4 py-2 text-sm font-medium text-text"
+				href={resolve(`/agents/${agentId}/workspace`)}
+				class="bg-bg-hover text-text rounded-md px-4 py-2 text-sm font-medium"
 			>
 				Workspace Files
 			</a>
 			<a
-				href="/agents/{agentId}/memory"
-				class="rounded-md px-4 py-2 text-sm text-text-muted transition-colors hover:text-text"
+				href={resolve(`/agents/${agentId}/memory`)}
+				class="text-text-muted hover:text-text rounded-md px-4 py-2 text-sm transition-colors"
 			>
 				Memory
 			</a>
@@ -146,7 +152,7 @@
 
 		<!-- File tabs -->
 		<div class="flex gap-1 overflow-x-auto">
-			{#each workspaceFiles as file}
+			{#each workspaceFiles as file (file.name)}
 				<button
 					onclick={() => (activeTab = file.name)}
 					class="shrink-0 rounded-md px-3 py-1.5 text-xs transition-colors"
@@ -159,7 +165,7 @@
 				>
 					{file.name}
 					{#if existingFiles.has(file.name)}
-						<span class="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-success"></span>
+						<span class="bg-success ml-1 inline-block h-1.5 w-1.5 rounded-full"></span>
 					{/if}
 				</button>
 			{/each}
@@ -170,28 +176,32 @@
 	<div class="flex flex-1 flex-col overflow-hidden">
 		{#if loading}
 			<div class="flex flex-1 items-center justify-center">
-				<div class="text-sm text-text-muted">Loading {activeTab}...</div>
+				<div class="text-text-muted text-sm">Loading {activeTab}...</div>
 			</div>
 		{:else}
 			<!-- File info bar -->
-			<div class="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-raised px-8 py-2">
+			<div
+				class="border-border-subtle bg-bg-raised flex shrink-0 items-center justify-between border-b px-8 py-2"
+			>
 				<div class="flex items-center gap-3">
-					<span class="text-xs text-text-dim font-mono">{agentId}/{activeTab}</span>
+					<span class="text-text-dim font-mono text-xs">{agentId}/{activeTab}</span>
 					{#if hasChanges}
-						<span class="rounded-full bg-warning-muted px-2 py-0.5 text-[10px] text-warning">modified</span>
+						<span class="bg-warning-muted text-warning rounded-full px-2 py-0.5 text-[10px]"
+							>modified</span
+						>
 					{/if}
 				</div>
 				<div class="flex items-center gap-3">
 					{#if saveSuccess}
-						<span class="text-xs text-success">Saved</span>
+						<span class="text-success text-xs">Saved</span>
 					{/if}
 					{#if fileError && !fileError.includes('does not exist')}
-						<span class="text-xs text-danger">{fileError}</span>
+						<span class="text-danger text-xs">{fileError}</span>
 					{/if}
 					<button
 						onclick={saveFile}
 						disabled={saving || !hasChanges}
-						class="rounded-md bg-accent px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-accent-hover disabled:opacity-40 active:scale-[0.98]"
+						class="bg-accent hover:bg-accent-hover rounded-md px-4 py-1.5 text-xs font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-40"
 					>
 						{saving ? 'Saving...' : 'Save'}
 					</button>
@@ -199,16 +209,18 @@
 			</div>
 
 			{#if fileError && fileError.includes('does not exist')}
-				<div class="shrink-0 border-b border-border-subtle bg-warning-muted px-8 py-2 text-xs text-warning">
+				<div
+					class="border-border-subtle bg-warning-muted text-warning shrink-0 border-b px-8 py-2 text-xs"
+				>
 					{fileError}
 				</div>
 			{/if}
 
 			<!-- Textarea editor -->
-			<div class="flex-1 overflow-auto bg-bg p-0">
+			<div class="bg-bg flex-1 overflow-auto p-0">
 				<textarea
 					bind:value={fileContent}
-					class="h-full w-full resize-none bg-transparent px-8 py-6 text-sm leading-relaxed text-text outline-none font-mono"
+					class="text-text h-full w-full resize-none bg-transparent px-8 py-6 font-mono text-sm leading-relaxed outline-none"
 					placeholder="Start writing..."
 					spellcheck="false"
 				></textarea>

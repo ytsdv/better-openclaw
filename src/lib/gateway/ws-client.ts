@@ -108,12 +108,8 @@ export class GatewayWSClient {
 				}
 
 				// Handle challenge event
-				if (
-					frame.type === 'event' &&
-					(frame as GatewayEvent).event === 'connect.challenge'
-				) {
-					this.challengeNonce =
-						((frame as GatewayEvent).payload?.nonce as string) ?? null;
+				if (frame.type === 'event' && (frame as GatewayEvent).event === 'connect.challenge') {
+					this.challengeNonce = ((frame as GatewayEvent).payload?.nonce as string) ?? null;
 					// Cancel the fallback timer since we got the challenge
 					if (this.challengeFallbackTimer) {
 						clearTimeout(this.challengeFallbackTimer);
@@ -135,11 +131,7 @@ export class GatewayWSClient {
 							resolve();
 						} else {
 							this.setStatus('error');
-							reject(
-								new Error(
-									resp.error?.message ?? 'Connection rejected'
-								)
-							);
+							reject(new Error(resp.error?.message ?? 'Connection rejected'));
 						}
 						return;
 					}

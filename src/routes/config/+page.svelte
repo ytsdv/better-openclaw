@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { connection } from '$lib/stores/connection.svelte.js';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	$effect(() => {
-		if (!connection.isActive) goto('/connect');
+		if (!connection.isActive) goto(resolve('/connect'));
 	});
 
 	let rawConfig = $state('');
@@ -54,47 +55,47 @@
 
 <div class="flex h-dvh flex-col overflow-hidden">
 	<!-- Header -->
-	<div class="shrink-0 border-b border-border bg-bg-raised px-8 py-4">
+	<div class="border-border bg-bg-raised shrink-0 border-b px-8 py-4">
 		<div class="flex items-center justify-between">
 			<div>
-				<h1 class="text-lg font-bold text-text">Configuration</h1>
-				<p class="text-xs text-text-dim font-mono">~/.openclaw/openclaw.json</p>
+				<h1 class="text-text text-lg font-bold">Configuration</h1>
+				<p class="text-text-dim font-mono text-xs">~/.openclaw/openclaw.json</p>
 			</div>
 			<div class="flex items-center gap-3">
 				{#if saveSuccess}
-					<span class="text-xs text-success">Applied + restarting gateway...</span>
+					<span class="text-success text-xs">Applied + restarting gateway...</span>
 				{/if}
 				{#if error}
-					<span class="max-w-sm truncate text-xs text-danger">{error}</span>
+					<span class="text-danger max-w-sm truncate text-xs">{error}</span>
 				{/if}
 				<button
 					onclick={refreshConfig}
 					disabled={loading}
-					class="rounded-md border border-border px-3 py-1.5 text-xs text-text-muted transition-colors hover:bg-bg-hover hover:text-text disabled:opacity-50"
+					class="border-border text-text-muted hover:bg-bg-hover hover:text-text rounded-md border px-3 py-1.5 text-xs transition-colors disabled:opacity-50"
 				>
 					{loading ? 'Refreshing...' : 'Refresh'}
 				</button>
 				<button
 					onclick={applyConfig}
 					disabled={saving || !hasChanges}
-					class="rounded-md bg-accent px-4 py-1.5 text-xs font-semibold text-white transition-all hover:bg-accent-hover disabled:opacity-40 active:scale-[0.98]"
+					class="bg-accent hover:bg-accent-hover rounded-md px-4 py-1.5 text-xs font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-40"
 				>
 					{saving ? 'Applying...' : 'Apply & Restart'}
 				</button>
 			</div>
 		</div>
 		{#if hasChanges}
-			<div class="mt-2 text-xs text-warning">
+			<div class="text-warning mt-2 text-xs">
 				Config has been modified. Apply to save and restart the gateway.
 			</div>
 		{/if}
 	</div>
 
 	<!-- Editor -->
-	<div class="flex-1 overflow-auto bg-bg">
+	<div class="bg-bg flex-1 overflow-auto">
 		<textarea
 			bind:value={rawConfig}
-			class="h-full w-full resize-none bg-transparent px-8 py-6 text-sm leading-relaxed text-text outline-none font-mono"
+			class="text-text h-full w-full resize-none bg-transparent px-8 py-6 font-mono text-sm leading-relaxed outline-none"
 			placeholder="Loading config..."
 			spellcheck="false"
 		></textarea>

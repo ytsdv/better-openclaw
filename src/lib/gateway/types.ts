@@ -138,4 +138,9 @@ export interface AgentFileSetResult {
 	file: AgentFileEntry;
 }
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'reconnecting' | 'connected' | 'error';
+export type ConnectionStatus =
+	| 'disconnected'
+	| 'connecting'
+	| 'reconnecting'
+	| 'connected'
+	| 'error';
