@@ -137,8 +137,10 @@
 
 		try {
 			const updatedList = [...agents, newAgent];
-			const patch = JSON.stringify({ agents: { list: updatedList } });
-			await connection.patchConfig(patch);
+			await connection.setConfig((cfg) => ({
+				...cfg,
+				agents: { ...cfg.agents, list: updatedList }
+			}));
 
 			if (uploadedFiles.size > 0) {
 				const tools = connection.getToolsClient();
@@ -166,11 +168,11 @@
 		try {
 			const updatedList = agents.filter((a) => a.id !== id);
 			// Also remove bindings for this agent
-			const bindings = (connection.config?.bindings ?? []).filter(
-				(b: { agentId: string }) => b.agentId !== id
-			);
-			const patch = JSON.stringify({ agents: { list: updatedList }, bindings });
-			await connection.patchConfig(patch);
+			await connection.setConfig((cfg) => ({
+				...cfg,
+				agents: { ...cfg.agents, list: updatedList },
+				bindings: (cfg.bindings ?? []).filter((b) => b.agentId !== id)
+			}));
 			deleteTarget = null;
 		} catch (err) {
 			console.error('Failed to delete agent:', err);

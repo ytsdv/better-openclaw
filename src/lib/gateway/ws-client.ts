@@ -273,6 +273,14 @@ export class GatewayWSClient {
 		if (!resp.ok) throw new Error(resp.error?.message ?? 'Failed to patch config');
 	}
 
+	async setConfig(raw: string, baseHash: string): Promise<void> {
+		const resp = await this.request('config.set', {
+			raw,
+			baseHash
+		});
+		if (!resp.ok) throw new Error(resp.error?.message ?? 'Failed to set config');
+	}
+
 	async applyConfig(raw: string, baseHash: string): Promise<void> {
 		const resp = await this.request('config.apply', {
 			raw,

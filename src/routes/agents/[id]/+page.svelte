@@ -67,8 +67,10 @@
 			}
 
 			const updatedList = agents.map((a) => (a.id === agentId ? updatedAgent : a));
-			const patch = JSON.stringify({ agents: { list: updatedList } });
-			await connection.patchConfig(patch);
+			await connection.setConfig((cfg) => ({
+				...cfg,
+				agents: { ...cfg.agents, list: updatedList }
+			}));
 			saveSuccess = true;
 			setTimeout(() => (saveSuccess = false), 3000);
 		} catch (err) {

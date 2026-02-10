@@ -115,6 +115,14 @@ function createConnectionStore() {
 		await refreshConfig();
 	}
 
+	async function setConfig(updater: (config: OpenClawConfig) => OpenClawConfig): Promise<void> {
+		if (!config) throw new Error('No config loaded');
+		const updated = updater(config);
+		const raw = JSON.stringify(updated, null, 2);
+		await wsClient.setConfig(raw, configHash);
+		await refreshConfig();
+	}
+
 	async function applyFullConfig(raw: string): Promise<void> {
 		await wsClient.applyConfig(raw, configHash);
 		await refreshConfig();
@@ -167,6 +175,7 @@ function createConnectionStore() {
 		refreshConfig,
 		refreshStatus,
 		patchConfig,
+		setConfig,
 		applyFullConfig,
 		getToolsClient
 	};
